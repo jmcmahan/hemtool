@@ -1,0 +1,100 @@
+These examples each illustrate how to use HEMtool. 
+
+example_01.m - Example involving 90 degree switching model to compute
+               strain from the input field
+example_03.m - Example involving 180 degree switching model. Computes
+               polarization for 4 different cases:
+               1) Normal / lognormal distribution, thermal relaxation
+               2) Normal / lognormal distribution, no thermal relaxation
+               3) General distribution, thermal relaxation
+               4) General distribution, no thermal relaxation
+example_04.m - An example illustrating "correct" and "incorrect" ways of
+               updating the model structure for most cases.
+
+
+To run the examples, make sure the code in the directory 'src' is in
+your current path.
+
+
+The general workflow for setting up the computation of a particular model in 
+HEMtool is:
+
+1) Setup parameters into the parameter structure
+2) Call hemtool, passing the parameter structure to it, which will return
+   a model structure containing state info, functions implemnting the 
+   algorithms, etc.
+3) Pass input to desired function, storing the resulting output ***AND***
+   updated model structure. The updated model structure will have updated
+   state information. The forward model will always be computed via
+   'hem.forward' and the inverse model will be computed via 'hem.invert'
+   where 'hem' is the model structure returned by the call to 'hemtool'.
+
+
+See the examples for details on this.
+
+
+QUICK OVERVIEW OF HEMTOOL ORGANIZATION:
+***************************************
+
+The files implementing HEMtool are in the 'src' directory. The main file
+is 'hemtool.m'. This parses the input parameter structure and returns a
+structure containing functions implementing the chosen model. 
+
+The actual functionality of HEMtool is done in the four functions specified
+by the parameter structure. Call the parameter structure, 'param', then
+the fields specifying these functions are:
+
+1) param.quadrature: The function given here will setup the quadrature
+                     rule used for evaluating the integrals in the homogenized
+                     energy model. This involves setting up the quadrature
+                     points, the quadrature weights, and a function for 
+                     evaluating the integral.
+
+   DEFAULT VALUE: 'quad_4pt_gauss' - sets up a 4-point Gauss-Legendre
+                                     quadrature
+
+                  To see an example of how the quadrature rule gets set up, 
+                  see 'quad_4pt_gauss.m', the default, and 'quad_loglinear.m',
+                  another quadrature rule option included. 
+
+2) param.distribution: The function given here will setup the distribution
+                       used over the quadrature points set up in the 
+                       "quadrature" step. It will combine the distribution
+                       grid with the quadrature weights (also set up in the
+                       "quadrature" step) to create variables used by the
+                       "hem.doquad" function when evaluating the integral
+                       (where again, "hem.doquad" was generated in the
+                       "quadrature" step).
+
+    DEFAULT VALUE: 'dist_lognormal'
+
+                 See 'dist_lognormal.m' and 'dist_general.m' for examples
+                 of how these are set up.
+
+3) param.evolution: The function given here sets up the evolution equation
+                    for the state used in evaluating the hysteresis (e.g., 
+                    dipole fraction in the case of ferroelectric materials).
+                    This involves setting up the function, 'hem.update',
+                    which updates the dipole fractions.
+
+    DEFAULT VALUE: 'evol_90_relax'
+
+                See 'evol_90_relax.m', 'evol_180_relax.m', and 
+                'evol_180_norelax.m' for examples of how these are set up.
+
+4) param.evaluation:    The function here sets up the final evaluation of
+                        the output. The main task is to setup the function
+                        'hem.forward', which computes the output from the
+                        input.
+
+    DEFAULT VALUE: 'eval_90_strain'
+                See 'eval_90_strain.m', 'eval_90_polarization.m', 
+                'eval_90_strain_polar.m', 'eval_180_polarization.m' for
+                examples of this.
+
+
+There is one other optional field that calls a setup function, and that
+is the 'param.inverse' field. This field only matters if the 
+'param.function_type' field is set to the string 'inverse'. The default
+value for 'param.inverse' is 'inverse_binary'. See the file 'inverse_binary.m'
+for details on how this gets set up.
